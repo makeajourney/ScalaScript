@@ -1,4 +1,5 @@
-class Rational(n: Int, d: Int) {
+// Ordered trait mix-in
+class Rational(n: Int, d: Int) extends Ordered[Rational] {
   require(d != 0) // 제약조건
 
   // class fields
@@ -43,8 +44,18 @@ class Rational(n: Int, d: Int) {
   def / (i: Int): Rational =
     new Rational(numer, denom * i)
 
-  def lessThan(that: Rational) =
-    this.numer * that.denom < that.numer * this.denom
+  // Ordered trait 이용
+  def compare(that: Rational) =
+    (this.numer * that.denom) - (that.numer * this.denom)
+
+//  def < (that: Rational) =
+//    this.numer * that.denom < that.numer * this.denom
+
+//  def > (that: Rational) = that < this
+
+  def <= (that: Rational) = (this < that) || (this == that)
+
+  def >= (that: Rational) = (this > that) || (this == that)
 
   def max(that: Rational) =
     if (this.lessThan(that)) that else this

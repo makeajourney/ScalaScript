@@ -1,0 +1,55 @@
+val emsText = sc.textFile("/home/ubuntu/emsData-020000.csv")
+
+case class EMSData (
+    prdt: String,
+    prdtCtgry: String,
+    nums: Double
+)
+
+case class Record (
+    emsid: String,
+    time: java.sql.Timestamp,
+    ctprvnNm: String,
+    signguNm: String,
+    prdt: String,
+    prdtCtgry: String,
+    nums: Double
+)
+
+val emsData = emsText.map(s => s.split(","))
+
+val envValues: Array[String] = Array("tp", "hmt", "itc", "occu", "noise")        // environment data keys
+val prdtKeys = emsData.map(s => s(4)).distinct.collect.filter(x => !envValues.contains(x))  // measured power data keys
+val emsInfo = emsData.map(s => (s(0), s(2), s(3))).first    // Home id, region informations
+
+val emsprdtMap = new scala.collection.mutable.HashMap[String, Double]
+
+for (key <- prdtKeys) {
+    emsprdtMap(key) = 0
+}
+// val tempData = prdtKeys.map(s => (s, 0))
+// val totalData = prdtKeys.map(s => (s, 0))
+
+val rawData = emsData.map(
+    s => Record(s(0), new java.sql.Timestamp(s(1).toLong), s(2), s(3), s(4), s(5), s(6).toDouble)
+    )
+
+var calculatedData = Array[Record]()
+
+for (data <- rawData) {
+    // about power data
+    if (emsprdtMap.contains(data.prdt)) {
+        val curPower = data.nums
+        //calculatedData = calculatedData :+ data.copy(nums = (data.nums - emsprdtMap(data.prdt) ) )
+        calculatedData :+= data.copy(nums = (data.nums - emsprdtMap(data.prdt)))
+        //emsprdtMap(data.prdt) = curPower
+    }
+    // env data
+    else {
+//        calculatedData = calculatedData :+ data.copy()
+        calculatedData :+= data.copy()
+        //data.copyToArray(calculatedData)
+    }
+} 
+calculatedData.take(5)
+sc.parallelize(calculatedData).toDF().registerTempTable("emsRecord")
